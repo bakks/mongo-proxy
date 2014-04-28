@@ -1,0 +1,11 @@
+*.swp
+*.bundle
+*.so
+*.a
+tmp
+.vagrant
+.DS_Store
+*.csv
+logs
+cache
+
