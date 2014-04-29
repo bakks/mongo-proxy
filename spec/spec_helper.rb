@@ -23,32 +23,11 @@ def mongo
   $mongo ||= Mongo::Connection.new(host, port)
 end
 
+TEST_DB = 'mongo_proxy_test'
+
 def mongotestdb
-  $db ||= mongo['mongo_proxy_test']
+  $db ||= mongo[TEST_DB]
 end
-
-def default_mongo_config
-  add_default_mongo_data(mongo)
-end
-
-def add_default_mongo_data(mongo)
-  mongo['pbbakkum']['test'].remove
-  mongo['pbbakkum']['sample'].remove
-  mongo['pbbakkum']['big'].remove
-
-  for i in 0..9
-    mongo['pbbakkum']['test'].insert({:x => i})
-  end
-
-  for i in 0..9
-    mongo['pbbakkum']['sample'].insert({:_id => i, :x => i})
-  end
-
-  for i in 0...1200
-    mongo['pbbakkum']['big'].insert({:_id => i, :x => i})
-  end
-end
-
 
 begin
   mongotestdb

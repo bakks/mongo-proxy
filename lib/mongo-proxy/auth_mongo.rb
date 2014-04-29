@@ -1,7 +1,8 @@
 require 'securerandom'
 
 class AuthMongo
-  def initialize
+  def initialize(config = nil)
+    @config = config
     @request_id = 20
   end
 
@@ -14,7 +15,7 @@ class AuthMongo
   end
 
   def reply_motd
-    motd = "motd\nfoo"
+    motd = @config[:motd]
     motd = motd.split("\n")
     return true, {
       'totalLinesWritten' => motd.size,
@@ -112,7 +113,11 @@ class AuthMongo
           elsif query['listDatabases'] == 1 && query.size == 1
             return true, nil
           elsif query['getLog'] == 'startupWarnings'
-            return reply_motd
+            if @config[:motd]
+              return reply_motd
+            else
+              return true
+            end
           end
 
         end

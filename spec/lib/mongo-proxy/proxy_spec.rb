@@ -3,13 +3,32 @@ require 'mongo'
 require 'pty'
 require 'json'
 
-describe ServMongo do
+describe MongoProxy do
+  def mongo_test_data
+    mongotestdb['test'].remove
+    mongotestdb['sample'].remove
+    mongotestdb['big'].remove
+
+    for i in 0..9
+      mongotestdb['test'].insert({:x => i})
+    end
+
+    for i in 0..9
+      mongotestdb['sample'].insert({:_id => i, :x => i})
+    end
+
+    for i in 0...1200
+      mongotestdb['big'].insert({:_id => i, :x => i})
+    end
+  end
+
   before :all do
-    puts "before all"
-    default_mongo_config
-    puts "did default"
-    @gate_thread = Thread.new { ServMongo::run }
-    sleep 1
+    mongo_test_data
+    config = {
+      :motd => "foo\nbar"
+    }
+    @gate_thread = Thread.new { MongoProxy.new(config) }
+    sleep 0.5
   end
 
   after :all do
@@ -19,10 +38,9 @@ describe ServMongo do
   it 'should accept public connections' do
     mongo = Mongo::Connection.new
     names = mongo.database_names
-    names.should include 'commonwealth_testing'
-    names.should include 'pbbakkum'
+    names.should include 'mongo_proxy_test'
 
-    cnames = mongo['pbbakkum'].collection_names
+    cnames = mongo[TEST_DB].collection_names
     cnames.should include 'test'
     cnames.should include 'sample'
     cnames.should include 'big'
@@ -31,10 +49,10 @@ describe ServMongo do
   it 'should accept connections from mongo driver' do
     mongo = Mongo::Connection.new
 
-    cursor = mongo['pbbakkum']['test'].find
-    mongo['pbbakkum']['test'].count.should == 10
+    cursor = mongo[TEST_DB]['test'].find
+    mongo[TEST_DB]['test'].count.should == 10
 
-    cursor = mongo['pbbakkum']['big'].find
+    cursor = mongo[TEST_DB]['big'].find
     i = 0
     while cursor.next
       i += 1
@@ -45,7 +63,7 @@ describe ServMongo do
   it 'should handle kill cursor' do
     mongo = Mongo::Connection.new
 
-    cursor = mongo['pbbakkum']['big'].find
+    cursor = mongo[TEST_DB]['big'].find
     cursor.count.should == 1200
     cursor.next
     cursor.close
@@ -55,7 +73,7 @@ describe ServMongo do
   it 'should handle reconnections' do
     for i in 0..10
       mongo = Mongo::Connection.new
-      cursor = mongo['pbbakkum']['big'].find
+      cursor = mongo[TEST_DB]['big'].find
       i = 0
       while cursor.next
         i += 1
@@ -67,26 +85,28 @@ describe ServMongo do
 
   it 'should block where' do
     mongo = Mongo::Connection.new
-    cursor = mongo['pbbakkum']['big'].find({'$where' => 'true'})
-    expect { cursor.next }.to raise_error
+    expect {
+      cursor = mongo[TEST_DB]['big'].find({'$where' => 'true'})
+      cursor.next
+    }.to raise_error
     mongo.close
   end
 
   it 'should block mapreduce' do
     mongo = Mongo::Connection.new
     expect do
-      x = mongo['pbbakkum']['big'].mapreduce('function() { emit(this.x, 1) }', 'function(k, v) { return 1 }', {:out => {:inline => 1}, :raw => true})
+      x = mongo[TEST_DB]['big'].mapreduce('function() { emit(this.x, 1) }', 'function(k, v) { return 1 }', {:out => {:inline => 1}, :raw => true})
     end.to raise_error
     mongo.close
   end
 
   it 'should handle getmore' do
     mongo = Mongo::Connection.new
-    coll = mongo['pbbakkum']['big']
+    coll = mongo[TEST_DB]['big']
 
     cursor = coll.find({}, {:sort => ['x', :asc]})
     i = 0
-    
+
     while doc = cursor.next
       doc['x'].should == i
       i += 1
@@ -105,17 +125,17 @@ describe ServMongo do
   end
 
   it 'should accept connections from shell driver' do
-    cmd = `echo "db.test.find()" | mongo localhost/pbbakkum`
+    cmd = `echo "db.test.find()" | mongo localhost/mongo_proxy_test`
     cmd.split("\n")[2..-2].size.should be >= 10
   end
 
   it 'should block arbitrary commands' do
     mongo = Mongo::Connection.new
-    expect { mongo['pbbakkum'].command({'repairDatabase' => 1}) }.to raise_error
-    expect { mongo['pbbakkum'].command({'fsync' => 1}) }.to raise_error
-    expect { mongo['pbbakkum'].command({'enableSharding' => 1}) }.to raise_error
-    expect { mongo['pbbakkum'].command({'shutdown' => 1}) }.to raise_error
-    expect { mongo['pbbakkum'].command({'ping' => 1}) }.to raise_error
+    expect { mongo[TEST_DB].command({'repairDatabase' => 1}) }.to raise_error
+    expect { mongo[TEST_DB].command({'fsync' => 1}) }.to raise_error
+    expect { mongo[TEST_DB].command({'enableSharding' => 1}) }.to raise_error
+    expect { mongo[TEST_DB].command({'shutdown' => 1}) }.to raise_error
+    expect { mongo[TEST_DB].command({'ping' => 1}) }.to raise_error
   end
 
   it 'should allow ismaster' do
@@ -128,7 +148,7 @@ describe ServMongo do
 
   it 'should block writes' do
     mongo = Mongo::Connection.new
-    db = mongo['pbbakkum']
+    db = mongo[TEST_DB]
     coll = db['big']
     expect { coll.insert({:foo => 'bar'}) }.to raise_error
     expect { coll.remove }.to raise_error
@@ -139,7 +159,7 @@ describe ServMongo do
 
     cursor = coll.find({}, {:sort => ['x', :asc]})
     i = 0
-    
+
     while doc = cursor.next
       doc['x'].should == i
       i += 1
@@ -148,6 +168,24 @@ describe ServMongo do
     i.should == 1200
 
     coll.index_information.size.should == 1
+  end
+
+  it 'should allow writes when not it readonly mode' do
+    config = {
+      :readonly => false,
+      :client_port => 29017
+    }
+    gate_thread2 = Thread.new { MongoProxy.new(config) }
+    sleep 0.5
+
+    mongo = Mongo::Connection.new('127.0.0.1', 29017)
+    db = mongo[TEST_DB]
+    coll = db['big']
+    coll.size.should == 1200
+    coll.insert({:foo => 'xxxx'})
+    coll.size.should == 1201
+
+    gate_thread2.kill
   end
 end
 
