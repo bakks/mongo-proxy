@@ -1,5 +1,5 @@
-require 'socket'
 require 'em-proxy'
+require 'logger'
 
 class MongoProxy
   def initialize(config = nil)
@@ -9,7 +9,9 @@ class MongoProxy
       :server_host => '127.0.0.1',
       :server_port => 27018,
       :motd => nil,
-      :readonly => true
+      :readonly => true,
+      :verbose => false,
+      :logger => nil
     }
 
     (config || []).each do |k, v|
@@ -20,9 +22,15 @@ class MongoProxy
       end
     end
 
+    unless @config[:logger]
+      @config[:logger] = Logger.new(STDOUT)
+      @config[:logger].level = (@config[:verbose] ? Logger::DEBUG : Logger::WARN)
+    end
+
+    @log = @config[:logger]
     @auth = AuthMongo.new(@config)
 
-    EM.error_handler{|e| p [e.inspect, e.backtrace.first] }
+    EM.error_handler { |e| @log.error [e.inspect, e.backtrace.first] }
 
     Proxy.start({
         :host => @config[:client_host],
@@ -40,12 +48,11 @@ class MongoProxy
     conn.on_data do |data|
       raw_msg, msg = WireMongo.receive(data)
       
-      puts 'from client'
-      pp msg
+      @log.info 'from client'
+      @log.info msg.to_s
 
       if raw_msg == nil
-        #@@log.info "Client disconnected"
-        puts 'Client disconnected'
+        @log.info "Client disconnected"
         return
       end
 
@@ -61,8 +68,7 @@ class MongoProxy
         conn.send_data(response)
 
       else # otherwise drop the message
-        #@@log.info 'dropping message'
-        puts 'dropping message'
+        @log.info 'dropping message'
 
       end
 
@@ -70,7 +76,7 @@ class MongoProxy
     end
 
     conn.on_finish do |backend, name|
-      #p [:on_finish, name]
+      @log.info "closing client connection #{name}"
     end
   end
 end

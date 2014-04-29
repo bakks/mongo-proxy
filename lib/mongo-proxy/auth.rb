@@ -3,6 +3,7 @@ require 'securerandom'
 class AuthMongo
   def initialize(config = nil)
     @config = config
+    @log = @config[:logger]
     @request_id = 20
   end
 
@@ -25,7 +26,7 @@ class AuthMongo
   end
 
   def reply_unauth(db, coll)
-    puts "replying unauthed for collection #{db}.#{coll}"
+    @log.info "replying unauthed for collection #{db}.#{coll}"
     return false, {
       'assertion' => 'not authorized',
       'assertionCode' => 10057,
