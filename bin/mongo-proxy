@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require '../lib/mongo-proxy'
+require 'trollop'
+
+opts = Trollop::options do
+  version "mongo-proxy #{MongoProxy::VERSION} (c) Peter Bakkum"
+  banner <<-END
+mongo-proxy runs a local proxy server for MongoDB. It allows you to watch the MongoDB wire traffic, run hooks on it, and force traffic to be read-only. This command is intended for easy access, you can also access the same functionality with the MongoProxy class.
+
+Usage:
+    mongo-proxy [options]
+
+Examples:
+
+More info can be found at the gem website at github.com/bakks/mongo-proxy
+
+Command line options:
+
+END
+
+  opt :client_host, 'Set the host to bind the proxy socket on', :default => '127.0.0.1', :short => 'h'
+  opt :client_port, 'Set the port to bind the proxy socket on', :default => 27018, :short => 'p'
+  opt :server_host, 'Set the backend hostname which we proxy', :default => '127.0.0.1', :short => 'H'
+  opt :server_port, 'Set the backend port which we proxy', :default => 27017, :short => 'P'
+  opt :readonly, 'Prevent any traffic that writes to the database', :default => false
+  opt :motd, 'Set a message-of-the-day to display to clients when they connect', :default => nil
+  opt :verbose, 'Print out MongoDB wire traffic', :default => true
+  opt :debug, 'Print log lines in a more human-readible format', :default => false
+end
+
+keys = [:client_host, :client_port, :server_host, :server_port, :readonly, :motd, :verbose, :debug]
+
+args = {}
+keys.each { |key| args[key] = opts[key] }
+
+MongoProxy.new(args)
+

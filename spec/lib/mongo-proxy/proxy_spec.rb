@@ -1,7 +1,6 @@
 require 'spec_helper'
 require 'mongo'
 require 'pty'
-require 'json'
 
 describe MongoProxy do
   def mongo_test_data

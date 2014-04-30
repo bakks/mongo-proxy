@@ -1,19 +1,42 @@
 require 'securerandom'
 
 class AuthMongo
+  @@admin_cmd_whitelist = [
+    { 'ismaster' => 1 },
+    { 'isMaster' => 1 },
+    { 'listDatabases' => 1},
+    {
+      'replSetGetStatus' => 1,
+      'forShell' => 1
+    }
+  ]
+
   def initialize(config = nil)
     @config = config
     @log = @config[:logger]
     @request_id = 20
+    @last_error = {}
   end
 
-  def reply_ismaster
-    return true, {
-      'ismaster' => true,
-      'maxBsonObjectSize' => 16777216,
-      'ok' => 1.0
-    }
+  def wire_auth(conn, msg)
+    return nil unless msg
+
+    authed, response = auth(conn, msg)
+
+    if !authed
+      @last_error[conn] = true
+    else
+      @last_error[conn] = false
+    end
+
+    if response
+      return WireMongo::build_reply(response, get_request_id, msg[:header][:requestID])
+    else
+      return authed
+    end
   end
+
+  private
 
   def reply_motd
     motd = @config[:motd]
@@ -28,10 +51,15 @@ class AuthMongo
   def reply_unauth(db, coll)
     @log.info "replying unauthed for collection #{db}.#{coll}"
     return false, {
-      'assertion' => 'not authorized',
-      'assertionCode' => 10057,
-      'errmsg' => 'Writes and Javascript execution are disallowed in this Commonwealth interface.',
-      'ok' => 0.0
+      'ok' => 0,
+      'n' => 0,
+        'code' => 2,
+        'errmsg' => 'Writes and Javascript execution are disallowed in this interface.',
+      'writeErrors' => {
+        'index' => 0,
+        'code' => 2,
+        'errmsg' => 'Writes and Javascript execution are disallowed in this interface.'
+      }
     }
   end
 
@@ -54,25 +82,8 @@ class AuthMongo
     return x
   end
 
-  def wire_auth(msg)
-    return nil unless msg
 
-    authed, response = auth(msg)
-
-    if !authed
-      @last_error = true
-    else
-      @last_error = false
-    end
-
-    if response
-      return WireMongo::build_reply(response, get_request_id, msg[:header][:requestID])
-    else
-      return authed
-    end
-  end
-
-  def auth(msg)
+  def auth(conn, msg)
     op = msg[:header][:opCode]
 
     if op == WireMongo::OP_KILL_CURSORS
@@ -86,9 +97,8 @@ class AuthMongo
     case op
     when WireMongo::OP_QUERY, WireMongo::OP_GET_MORE
       return reply_unauth(db, coll) unless db and coll
-
       return reply_unauth(db, coll) if query['$where'] != nil
-      
+
       # handle authentication process
       if coll == '$cmd'
 
@@ -100,18 +110,16 @@ class AuthMongo
           return true, nil
 
         elsif query['getlasterror'] == 1
-          if @last_error
+          if @last_error[conn]
             return reply_unauth(db, coll)
-            @last_error = false
+            @last_error[conn] = false
           else
             return true, nil
           end
 
         # allow ismaster query, listDatabases query
         elsif db == 'admin'
-          if (query['ismaster'] == 1 || query['isMaster'] == 1) && query.size == 1
-            return reply_ismaster
-          elsif query['listDatabases'] == 1 && query.size == 1
+          if @@admin_cmd_whitelist.include?(query)
             return true, nil
           elsif query['getLog'] == 'startupWarnings'
             if @config[:motd]
@@ -121,9 +129,9 @@ class AuthMongo
             end
           end
 
-        end
+        end # if db == 'admin'
         return reply_unauth(db, coll)
-      end
+      end # if coll == '$cmd'
 
       return true, nil if coll == 'system.namespaces' # list collections
       return reply_unauth(db, coll) if coll[0] == '$' #other command
@@ -131,10 +139,12 @@ class AuthMongo
       return true, nil
 
     when WireMongo::OP_UPDATE, WireMongo::OP_INSERT, WireMongo::OP_DELETE
-      return reply_unauth(db, coll)
+      #return reply_unauth(db, coll)
+      return false, nil
 
     else
       return reply_unauth(db, coll)
+
     end
   end
 end

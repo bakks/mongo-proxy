@@ -1,7 +1,11 @@
 require 'em-proxy'
 require 'logger'
+require 'json'
+require 'pp'
 
 class MongoProxy
+  VERSION = 1.0
+
   def initialize(config = nil)
     @config = {
       :client_host => '127.0.0.1',
@@ -11,7 +15,8 @@ class MongoProxy
       :motd => nil,
       :readonly => true,
       :verbose => false,
-      :logger => nil
+      :logger => nil,
+      :debug => false
     }
 
     (config || []).each do |k, v|
@@ -24,13 +29,23 @@ class MongoProxy
 
     unless @config[:logger]
       @config[:logger] = Logger.new(STDOUT)
-      @config[:logger].level = (@config[:verbose] ? Logger::DEBUG : Logger::WARN)
+      @config[:logger].level = (@config[:verbose] || @config[:debug] ? Logger::DEBUG : Logger::WARN)
+      @config[:logger].formatter = proc do |severity, datetime, progname, msg|
+        if msg.is_a?(Hash)
+          "#{JSON::pretty_generate(msg)}\n\n"
+        else
+          "#{msg}\n\n"
+        end
+      end
     end
 
     @log = @config[:logger]
     @auth = AuthMongo.new(@config)
 
-    EM.error_handler { |e| @log.error [e.inspect, e.backtrace.first] }
+    EM.error_handler do |e|
+      @log.error [e.inspect, e.backtrace.first]
+      raise e
+    end
 
     Proxy.start({
         :host => @config[:client_host],
@@ -49,7 +64,7 @@ class MongoProxy
       raw_msg, msg = WireMongo.receive(data)
       
       @log.info 'from client'
-      @log.info msg.to_s
+      @log.info msg
 
       if raw_msg == nil
         @log.info "Client disconnected"
@@ -57,7 +72,7 @@ class MongoProxy
       end
 
       # get auth response about client query
-      authed = (@config[:readonly] == true ? @auth.wire_auth(msg) : true)
+      authed = (@config[:readonly] == true ? @auth.wire_auth(conn, msg) : true)
       r = nil
 
       if authed == true # auth succeeded
@@ -73,6 +88,16 @@ class MongoProxy
       end
 
       r
+    end
+
+    conn.on_response do |backend, resp|
+      if @config[:verbose]
+        _, msg = WireMongo::receive(resp)
+        @log.info 'from server'
+        @log.info msg
+      end
+
+      resp
     end
 
     conn.on_finish do |backend, name|

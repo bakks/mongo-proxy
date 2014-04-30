@@ -1,16 +1,18 @@
 source 'https://rubygems.org'
 
-gem 'mongo'
 gem 'bson'
 gem 'bson_ext'
-gem 'json'
 gem 'em-proxy'
+gem 'trollop'
 
-gem 'rake'
-gem 'rake-compiler'
-gem 'rspec'
-gem 'mocha'
-gem 'autotest-standalone'
-gem 'rack-test'
+group :development do
+  gem 'mongo'
+  gem 'rake'
+  gem 'rake-compiler'
+  gem 'rspec'
+  gem 'mocha'
+  gem 'autotest-standalone'
+  gem 'rack-test'
+end
 
 
