@@ -23,13 +23,13 @@ END
   opt :client_port, 'Set the port to bind the proxy socket on', :default => 27018, :short => 'p'
   opt :server_host, 'Set the backend hostname which we proxy', :default => '127.0.0.1', :short => 'H'
   opt :server_port, 'Set the backend port which we proxy', :default => 27017, :short => 'P'
-  opt :readonly, 'Prevent any traffic that writes to the database', :default => false
+  opt :read_only, 'Prevent any traffic that writes to the database', :default => false
   opt :motd, 'Set a message-of-the-day to display to clients when they connect', :default => nil
   opt :verbose, 'Print out MongoDB wire traffic', :default => true
   opt :debug, 'Print log lines in a more human-readible format', :default => true
 end
 
-keys = [:client_host, :client_port, :server_host, :server_port, :readonly, :motd, :verbose, :debug]
+keys = [:client_host, :client_port, :server_host, :server_port, :read_only, :motd, :verbose, :debug]
 
 args = {}
 keys.each { |key| args[key] = opts[key] }

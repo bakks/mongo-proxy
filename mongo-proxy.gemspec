@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
 
   gem.authors = ["Peter Bakkum"]
   gem.bindir = 'bin'
-  gem.description = %q{A MongoDB proxy server that allows you to filter writes or other arbitrary queries}
+  gem.description = %q{A proxy server for MongoDB.}
   gem.email = ['pbb7c@virginia.edu']
   gem.executables = ['mongo-proxy']
   gem.extra_rdoc_files = ['LICENSE.md', 'README.md']
@@ -28,7 +28,7 @@ Gem::Specification.new do |gem|
   gem.rdoc_options = ["--charset=UTF-8"]
   gem.require_paths = ['lib']
   gem.required_rubygems_version = Gem::Requirement.new(">= 1.3.6")
-  gem.summary = %q{A MongoDB proxy server that allows you to filter writes or other arbitrary queries}
+  gem.summary = %q{A proxy server for MongoDB.}
   gem.test_files = Dir['spec/**/*']
   gem.version = MongoProxy::VERSION
   gem.license = 'MIT'

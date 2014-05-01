@@ -17,7 +17,7 @@ class MongoProxy
       :server_host => '127.0.0.1',
       :server_port => 27018,
       :motd => nil,
-      :readonly => true,
+      :read_only => true,
       :verbose => false,
       :logger => nil,
       :debug => false
@@ -108,7 +108,7 @@ class MongoProxy
       next unless msg
 
       # get auth response about client query
-      authed = (@config[:readonly] == true ? @auth.wire_auth(conn, msg) : true)
+      authed = (@config[:read_only] == true ? @auth.wire_auth(conn, msg) : true)
       r = nil
 
       if authed == true # auth succeeded
