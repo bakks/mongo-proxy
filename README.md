@@ -95,6 +95,26 @@ Callbacks are executed and passed the client connection on which a message was r
 
 mongo-proxy is a thin layer on top of [em-proxy](https://github.com/igrigorik/em-proxy), and the connection object passed to your hook is the same as the em-proxy connection object. This means that you can call the `send_data` method on it to send a raw message to the client.
 
+#### MongoProxy Options
+
+You can use the following options (shown with their default values), when creating a `MongoProxy` object.
+
+```ruby
+@config = {
+  :client_host => '127.0.0.1', # Set the host to bind the proxy socket on.
+  :client_port => 29017,       # Set the port to bind the proxy socket on.
+  :server_host => '127.0.0.1', # Set the backend host which we proxy.
+  :server_port => 27017,       # Set the backend port which we proxy.
+  :motd => nil,                # Set a message-of-the-day to display to clients when they connect. nil for none.
+  :read_only => false,         # Prevent any traffic that writes to the database.                                 
+  :verbose => false,           # Print out MongoDB wire traffic.
+  :logger => nil,              # Use this object as the logger instead of creating one.
+  :debug => false              # Print log lines in a more human-readible format.
+} 
+```
+
+#### Message Format
+
 Here is an example message passed to a hook:
 ```ruby
 {
@@ -117,6 +137,11 @@ Here is an example message passed to a hook:
 ```
 
 This format comes from our [wire parsing code](lib/mongo/proxy/wire.rb), and will look similar, but differ slightly, for other operations such as inserts or deletes.
+
+Testing
+-------
+
+Running the unit tests requires a MongoDB instance at port 27018 (nonstandard) and nothing at port 27017. The tests userspec, so you can run with `bundle exec rspec`.
 
 License
 -------

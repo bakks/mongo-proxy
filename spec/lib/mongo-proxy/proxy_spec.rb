@@ -24,7 +24,10 @@ describe MongoProxy do
   before :all do
     mongo_test_data
     config = {
-      :motd => "foo\nbar"
+      :motd => "foo\nbar",
+      :client_port => 27017,
+      :server_port => 27018,
+      :read_only => true
     }
     @gate_thread = Thread.new do
       m = MongoProxy.new(config)
@@ -172,14 +175,18 @@ describe MongoProxy do
     coll.index_information.size.should == 1
   end
 
-  it 'should allow writes when not it readonly mode' do
+  it 'should allow writes when not in read_only mode' do
     config = {
-      :readonly => false,
-      :client_port => 29017
+      :read_only => false,
+      :client_port => 29017,
+      :server_port => 27018
     }
     gate_thread2 = Thread.new do
-      m = MongoProxy.new(config)
-      m.start
+      begin
+        MongoProxy.new(config).start
+      rescue Exception => e
+        p [e.inspect, e.backtrace.first]
+      end
     end
     sleep 0.5
 
@@ -195,8 +202,9 @@ describe MongoProxy do
 
   it 'should allow front middleware' do
     config = {
-      :readonly => false,
-      :client_port => 29018
+      :read_only => false,
+      :client_port => 29018,
+      :server_port => 27018
     }
     i = 0
 
@@ -225,8 +233,9 @@ describe MongoProxy do
 
   it 'should allow back middleware' do
     config = {
-      :readonly => false,
-      :client_port => 29018
+      :read_only => false,
+      :client_port => 29018,
+      :server_port => 27018
     }
     i = 0
 
@@ -255,8 +264,9 @@ describe MongoProxy do
 
   it 'should shape traffic' do
     config = {
-      :readonly => false,
-      :client_port => 29020
+      :read_only => false,
+      :client_port => 29020,
+      :server_port => 27018
     }
 
     gate_thread2 = Thread.new do

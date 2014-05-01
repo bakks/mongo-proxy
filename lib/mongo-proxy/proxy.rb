@@ -12,15 +12,15 @@ class MongoProxy
   def initialize(config = nil)
     # default config values
     @config = {
-      :client_host => '127.0.0.1',
-      :client_port => 27017,
-      :server_host => '127.0.0.1',
-      :server_port => 27018,
-      :motd => nil,
-      :read_only => true,
-      :verbose => false,
-      :logger => nil,
-      :debug => false
+      :client_host => '127.0.0.1', # Set the host to bind the proxy socket on.
+      :client_port => 29017,       # Set the port to bind the proxy socket on.
+      :server_host => '127.0.0.1', # Set the backend host which we proxy.
+      :server_port => 27017,       # Set the backend port which we proxy.
+      :motd => nil,                # Set a message-of-the-day to display to clients when they connect. nil for none.
+      :read_only => false,         # Prevent any traffic that writes to the database.
+      :verbose => false,           # Print out MongoDB wire traffic.
+      :logger => nil,              # Use this object as the logger instead of creating one.
+      :debug => false              # Print log lines in a more human-readible format.
     }
     @front_callbacks = []
     @back_callbacks = []
@@ -92,7 +92,7 @@ class MongoProxy
     conn.on_data do |data|
       # parse the raw binary message
       raw_msg, msg = WireMongo.receive(data)
-      
+
       @log.info 'from client'
       @log.info msg
 
