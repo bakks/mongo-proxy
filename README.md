@@ -136,7 +136,7 @@ Here is an example message passed to a hook:
 }
 ```
 
-This format comes from our [wire parsing code](lib/mongo/proxy/wire.rb), and will look similar, but differ slightly, for other operations such as inserts or deletes.
+This format comes from our [wire parsing code](lib/mongo-proxy/wire.rb), and will look similar, but differ slightly, for other operations such as inserts or deletes.
 
 Testing
 -------
