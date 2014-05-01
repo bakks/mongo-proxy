@@ -9,4 +9,5 @@ tmp
 logs
 cache
 Gemfile.lock
+*.gem
 
