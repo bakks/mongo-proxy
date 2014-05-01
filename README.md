@@ -1,7 +1,9 @@
 Mongo Proxy
 ===========
 
-A gem for proxying MongoDB at the wire-protocol level. The proxy intercepts MongoDB communication, presents it in an easy-to-manipulate format. This approach allows you to filter MongoDB traffic, such as allowing only writes, or even injecting new messages, such as a message-of-the-day that appears on new connections.
+A gem for proxying MongoDB at the wire-protocol level. The proxy intercepts MongoDB communication, presents it in an easy-to-manipulate format, and forwards only desired messages. This approach allows you to filter MongoDB traffic, such as writes, or even inject new messages, such as a message-of-the-day that appears on new connections.
+
+mongo-proxy includes a command-line interface and an API for running it in a Ruby application. You can write your own hooks to manipulate MongoDB wire traffic as it arrives from the client.
 
 Installation
 ------------
@@ -141,7 +143,7 @@ This format comes from our [wire parsing code](lib/mongo-proxy/wire.rb), and wil
 Testing
 -------
 
-Running the unit tests requires a MongoDB instance at port 27018 (nonstandard) and nothing at port 27017. The tests userspec, so you can run with `bundle exec rspec`.
+Running the unit tests requires a MongoDB instance at port 27018 (nonstandard) and nothing at port 27017. The tests use rspec, so you can run with `bundle exec rspec`.
 
 License
 -------
