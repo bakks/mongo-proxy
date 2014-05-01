@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require '../lib/mongo-proxy'
+require 'mongo-proxy'
 require 'trollop'
 
 opts = Trollop::options do
