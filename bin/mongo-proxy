@@ -26,7 +26,7 @@ END
   opt :readonly, 'Prevent any traffic that writes to the database', :default => false
   opt :motd, 'Set a message-of-the-day to display to clients when they connect', :default => nil
   opt :verbose, 'Print out MongoDB wire traffic', :default => true
-  opt :debug, 'Print log lines in a more human-readible format', :default => false
+  opt :debug, 'Print log lines in a more human-readible format', :default => true
 end
 
 keys = [:client_host, :client_port, :server_host, :server_port, :readonly, :motd, :verbose, :debug]

@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+gem 'json'
 gem 'bson'
 gem 'bson_ext'
 gem 'em-proxy'

@@ -1,8 +1,9 @@
 require 'bson'
 
-# This is a set of functions for dealing with the Mongo wire protocol. It has methods for
-# moving between Ruby hashes and Mongo wire segments, including their embedded BSON.
-
+# This is a set of functions for dealing with the Mongo wire protocol. It has
+# methods for moving between Ruby hashes and Mongo wire segments, including
+# their embedded BSON. The MongoDB wire protocol is documented at:
+#
 module WireMongo
 
   HEADER_SIZE           = 16
@@ -32,6 +33,8 @@ module WireMongo
   FLAG_UPDATE_MULTIUPDATE   = (1 << 1)
   FLAG_DELETE_MULTI         = 1
 
+  # Parse out an arbitrary binary mongo message, returning a hash
+  # representation for easy manipulation.
   def self.receive socket
     if socket.is_a?(String)
       socket = StringIO.new(socket)
@@ -74,6 +77,9 @@ module WireMongo
     return nil
   end
 
+  # Write a hash document representation into its corresponding binary form.
+  # This method can be used with documents in the format that receive returns,
+  # making it easy to parse a message, change it, and re-encode it.
   def self.write doc
     body = nil
 

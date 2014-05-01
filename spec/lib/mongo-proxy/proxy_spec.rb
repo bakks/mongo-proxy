@@ -26,7 +26,10 @@ describe MongoProxy do
     config = {
       :motd => "foo\nbar"
     }
-    @gate_thread = Thread.new { MongoProxy.new(config) }
+    @gate_thread = Thread.new do
+      m = MongoProxy.new(config)
+      m.start
+    end
     sleep 0.5
   end
 
@@ -174,7 +177,10 @@ describe MongoProxy do
       :readonly => false,
       :client_port => 29017
     }
-    gate_thread2 = Thread.new { MongoProxy.new(config) }
+    gate_thread2 = Thread.new do
+      m = MongoProxy.new(config)
+      m.start
+    end
     sleep 0.5
 
     mongo = Mongo::Connection.new('127.0.0.1', 29017)
@@ -183,6 +189,94 @@ describe MongoProxy do
     coll.size.should == 1200
     coll.insert({:foo => 'xxxx'})
     coll.size.should == 1201
+
+    gate_thread2.kill
+  end
+
+  it 'should allow front middleware' do
+    config = {
+      :readonly => false,
+      :client_port => 29018
+    }
+    i = 0
+
+    gate_thread2 = Thread.new do
+      m = MongoProxy.new(config)
+
+      # add middleware that returns null so it can't connect
+      m.add_callback_to_front do |conn, msg|
+        nil
+      end
+
+      m.add_callback_to_front do |conn, msg|
+        i += 1
+        msg
+      end
+
+      m.start
+    end
+    sleep 0.5
+
+    expect { mongo = Mongo::Connection.new('localhost', 29018, :connect_timeout => 0.2) }.to raise_error
+    i.should == 1
+
+    gate_thread2.kill
+  end
+
+  it 'should allow back middleware' do
+    config = {
+      :readonly => false,
+      :client_port => 29018
+    }
+    i = 0
+
+    gate_thread2 = Thread.new do
+      m = MongoProxy.new(config)
+
+      # add middleware that returns null so it can't connect
+      m.add_callback_to_back do |conn, msg|
+        nil
+      end
+
+      m.add_callback_to_back do |conn, msg|
+        i += 1
+        msg
+      end
+
+      m.start
+    end
+    sleep 0.5
+
+    expect { mongo = Mongo::Connection.new('localhost', 29018, :connect_timeout => 0.2) }.to raise_error
+    i.should == 0
+
+    gate_thread2.kill
+  end
+
+  it 'should shape traffic' do
+    config = {
+      :readonly => false,
+      :client_port => 29020
+    }
+
+    gate_thread2 = Thread.new do
+      m = MongoProxy.new(config)
+      m.add_callback_to_back do |conn, msg|
+        if msg[:header][:opCode] == :insert
+          msg[:documents] = [{:foo => 1}]
+        end
+        msg
+      end
+      m.start
+    end
+    sleep 0.5
+
+    mongo = Mongo::Connection.new('localhost', 29020, :connect_timeout => 0.2)
+    coll = mongo[TEST_DB]['test']
+    coll.remove
+    coll.insert({:x => 1})
+    coll.insert({:x => 1})
+    coll.count({:foo => 1}).should == 2
 
     gate_thread2.kill
   end
