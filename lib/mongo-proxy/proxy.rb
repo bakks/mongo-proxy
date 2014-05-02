@@ -10,7 +10,7 @@ require 'timeout'
 # parsing and filtering capabilities that allow you to enforce a read-only
 # mode, or use your own arbitrary logic.
 class MongoProxy
-  VERSION = '1.0.0'
+  VERSION = '1.0.1'
 
   def initialize(config = nil)
     # default config values

@@ -27,7 +27,7 @@ END
   opt :server_host, 'Set the backend hostname which we proxy.', :default => '127.0.0.1', :short => 'H'
   opt :server_port, 'Set the backend port which we proxy.', :default => 27017, :short => 'P'
   opt :read_only, 'Prevent any traffic that writes to the database.', :default => false
-  opt :motd, 'Set a message-of-the-day to display to clients when they connect.', :default => nil
+  opt :motd, 'Set a message-of-the-day to display to clients when they connect.', :default => nil, :type => String
   opt :verbose, 'Print out MongoDB wire traffic.', :default => true
   opt :debug, 'Print log lines in a more human-readible format.', :default => true
 end

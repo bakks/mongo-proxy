@@ -28,7 +28,7 @@ This will proxy local client connections to port 29017 to a running MongoDB serv
 ```
 > mongo --port 29017
 MongoDB shell version: 2.6.0
-connecting to: 127.0.0.1:27018/test
+connecting to: 127.0.0.1:29017/test
 Server has startup warnings:
 Connected to proxy!
 ```
