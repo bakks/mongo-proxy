@@ -13,6 +13,9 @@ Usage:
 
 Examples:
 
+    mongo-proxy -P 27017 -p 29017 -r -d
+    (runs a proxy at port 29017 to connect to a local mongo in read-only and debug mode)
+
 More info can be found at the gem website at github.com/bakks/mongo-proxy
 
 Command line options:
@@ -34,5 +37,6 @@ keys = [:client_host, :client_port, :server_host, :server_port, :read_only, :mot
 args = {}
 keys.each { |key| args[key] = opts[key] }
 
-MongoProxy.new(args)
+m = MongoProxy.new(args)
+m.start
 

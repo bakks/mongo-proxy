@@ -2,6 +2,9 @@ require 'em-proxy'
 require 'logger'
 require 'json'
 require 'pp'
+require 'socket'
+require 'timeout'
+
 
 # This class uses em-proxy to help listen to MongoDB traffic, with some
 # parsing and filtering capabilities that allow you to enforce a read-only
@@ -52,6 +55,10 @@ class MongoProxy
           end
         end
       end
+    end
+
+    unless port_open?(@config[:server_host], @config[:server_port])
+      raise "Could not connect to MongoDB server at #{@config[:server_host]}.#{@config[:server_port]}"
     end
 
     @log = @config[:logger]
@@ -146,6 +153,20 @@ class MongoProxy
     conn.on_finish do |backend, name|
       @log.info "closing client connection #{name}"
     end
+  end
+
+  # http://stackoverflow.com/questions/517219/ruby-see-if-a-port-is-open
+  def port_open?(ip, port, seconds=1)
+    Timeout::timeout(seconds) do
+      begin
+        TCPSocket.new(ip, port).close
+        true
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+        false
+      end
+    end
+  rescue Timeout::Error
+    false
   end
 end
 
